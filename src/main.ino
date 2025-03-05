@@ -5,7 +5,8 @@
 #include "TouchDrvCHSC5816.hpp"
 #include "pin_config.h"
 #include "knob.h"
-#include "websocket.h"
+#include "homeassistant/websocket.h"
+#include "knob_events.h"
 
 // https://www.youtube.com/nishad2m8
 // https://buymeacoffee.com/nishad2m8
@@ -136,36 +137,7 @@ void setup()
 
     KNOB_Init();
 
-    connectWS(); // Connect to the WebSocket server
-}
-
-void update_arc(lv_obj_t * arc, int step)
-{
-    int current_value = lv_arc_get_value(arc);  // Get current value
-    int new_value = current_value + step;       // Increment by step
-
-    // Ensure new value stays within range
-    if (new_value > lv_arc_get_max_value(arc)) {
-        new_value = lv_arc_get_max_value(arc);
-    }
-
-    lv_arc_set_value(arc, new_value);  // Apply new value
-}
-
-void update_brightness(lv_obj_t * arc)
-{
-    int brightness = lv_arc_get_value(arc);  // Get the arc's value (0-100)
-
-	int ha_brightness = map(brightness, 0, 100, 0, 255);
-    
-    // Send brightness to Home Assistant (assuming sendWSMessage function)
-    JsonDocument doc;
-    doc["type"] = "call_service";
-    doc["domain"] = "light";
-    doc["service"] = "turn_on";
-    doc["service_data"]["entity_id"] = "light.led_leiste_2";
-    doc["service_data"]["brightness"] = ha_brightness;
-    sendWSMessage(doc);
+    haWebsocket.connect(); // Connect to the WebSocket server
 }
 
 void loop()
@@ -186,27 +158,25 @@ void loop()
     if (KNOB_Trigger_Flag == true)
     {
         KNOB_Trigger_Flag = false;
-        int current_value = lv_arc_get_value(ui_Arc2);  // Get current value
+        int current_value = lv_arc_get_value(ui_Arc2); // Get current value
 
         // Update the knob data based on the knob state
         switch (KNOB_State_Flag)
         {
         case KNOB_State::KNOB_INCREMENT:
             KNOB_Data++;
-            Serial.printf("\nKNOB_Data: %d\n", KNOB_Data);  
-            update_arc(ui_Arc2, 5);  // Increment by step
-            update_brightness(ui_Arc2);  // Update brightness
+            on_knob_increment(); // Custom function
             break;
         case KNOB_State::KNOB_DECREMENT:
             KNOB_Data--;
-            Serial.printf("\nKNOB_Data: %d\n", KNOB_Data);
-            update_arc(ui_Arc2, -5);  // Decrement by step
-            update_brightness(ui_Arc2);  // Update brightness
+            on_knob_decrement(); // Custom function
             break;
         default:
             break;
         }
+
+        on_knob_turn(KNOB_Data); // Custom function
     }
 
-    wsLoop(); // Maintain the WebSocket connection
+    haWebsocket.loop(); // Maintain the WebSocket connection
 }
