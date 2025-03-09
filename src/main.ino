@@ -7,6 +7,7 @@
 #include "knob.h"
 #include "homeassistant/websocket.h"
 #include "knob_events.h"
+#include "utils/debouncer.h"
 
 // https://www.youtube.com/nishad2m8
 // https://buymeacoffee.com/nishad2m8
@@ -158,7 +159,6 @@ void loop()
     if (KNOB_Trigger_Flag == true)
     {
         KNOB_Trigger_Flag = false;
-        int current_value = lv_arc_get_value(ui_Arc2); // Get current value
 
         // Update the knob data based on the knob state
         switch (KNOB_State_Flag)
@@ -179,4 +179,5 @@ void loop()
     }
 
     haWebsocket.loop(); // Maintain the WebSocket connection
+    Debounce::updateAll(); // Update all debouncers
 }

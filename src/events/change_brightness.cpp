@@ -3,18 +3,15 @@
 #include "../homeassistant/light.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include "../utils/debouncer.h"
+#include "../utils/lvgl_helper.h"
 
-#define DEBOUNCE_TIME 333  // ms debounce time
-unsigned long lastUpdateTimeBrightness = 0;
+static Debounce debounce(250);
 
 void change_brightness(lv_event_t * e)
 {
-	unsigned long currentTime = millis();
-    
-    if (currentTime - lastUpdateTimeBrightness < DEBOUNCE_TIME) {
-        return;  // Ignore if within debounce time
-    }
-    
-    lastUpdateTimeBrightness = currentTime;  // Update last update time
-	ha_light_change_brightness(e, "light.eckstrahler_wohnzimmer");
+	int brightness = lvgl_event_to_brightness(e);
+	debounce.call([brightness]() {
+		ha_light_change_brightness("light.eckstrahler_wohnzimmer", brightness);
+	});
 }

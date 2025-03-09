@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <lvgl.h>
 #include "homeassistant/websocket.h"
+#include "utils/lvgl_helper.h"
 
 void ha_light_change_brightness(String entity, int brightness)
 {
@@ -17,14 +18,9 @@ void ha_light_change_brightness(String entity, int brightness)
     haWebsocket.send(doc, true);
 }
 
-void ha_light_change_brightness(lv_event_t * e, String entity)
+void ha_light_change_brightness(String entity, lv_event_t * e)
 {   
-    lv_obj_t * arc = lv_event_get_target(e); // Get the arc object that triggered the event
-    int brightness = lv_arc_get_value(arc);  // Get the arc's value (0-100)
-
-    int ha_brightness = map(brightness, 0, 100, 0, 255);
-    
-    ha_light_change_brightness(entity, ha_brightness);
+    ha_light_change_brightness(entity, lvgl_event_to_brightness(e));
 }
 
 void ha_light_change_color(String entity, uint8_t r, uint8_t g, uint8_t b)
@@ -41,17 +37,10 @@ void ha_light_change_color(String entity, uint8_t r, uint8_t g, uint8_t b)
     haWebsocket.send(doc, true);
 }
 
-void ha_light_change_color(lv_event_t * e, String entity)
+void ha_light_change_color(String entity, lv_event_t * e)
 {
-    lv_obj_t * colorwheel = lv_event_get_target(e); // Get color picker object
-    lv_color_t color = lv_colorwheel_get_rgb(colorwheel); // Get selected color
-
-    // Convert LVGL color to RGB values
-    uint8_t r = (color.ch.red * 255) / 31;   // Scale 5-bit to 8-bit (0-31 → 0-255)
-    uint8_t g = (((color.ch.green_h << 3) | color.ch.green_l) * 255) / 63; // Combine green_h & green_l, then scale
-    uint8_t b = (color.ch.blue * 255) / 31;  // Scale 5-bit to 8-bit (0-31 → 0-255)
-
-    ha_light_change_color(entity, r, g, b);
+    RGBColor rgb = lvgl_event_to_rgb(e);
+    ha_light_change_color(entity, rgb.r, rgb.g, rgb.b);
 }
 
 void ha_light_toggle(String entity)
